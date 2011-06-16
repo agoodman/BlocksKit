@@ -6,7 +6,7 @@
 #import "UIBarButtonItem+BlocksKit.h"
 #import "NSObject+AssociatedObjects.h"
 
-static char *kBarButtonItemBlockKey = "UIBarButtonItemBlock";
+static char* kBarButtonItemBlockKey = "UIBarButtonItemBlock";
 
 @interface UIBarButtonItem (BlocksKitPrivate)
 - (void)_handleAction:(UIBarButtonItem *)sender;
@@ -36,7 +36,7 @@ static char *kBarButtonItemBlockKey = "UIBarButtonItemBlock";
 }
 
 - (void)_handleAction:(UIBarButtonItem *)sender {
-    BKSenderBlock block = [self associatedValueForKey:&kBarButtonItemBlockKey];
+    BKSenderBlock block = [self associatedValueForKey:kBarButtonItemBlockKey];
     if (block) dispatch_async(dispatch_get_main_queue(), ^{ block(block); });
 }
 
