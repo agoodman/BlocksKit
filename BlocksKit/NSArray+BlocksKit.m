@@ -51,13 +51,17 @@
 }
 
 - (NSArray *)map:(BKTransformBlock)block {
-    NSMutableArray *list = [[NSMutableArray alloc] initWithCapacity:self.count];
-    for (id obj in self) {
-        [list addObject:block(obj)];
-    }
-    NSArray *result = [list copy];
-    [list release];
-    return [result autorelease];
+    NSMutableArray *result = [NSMutableArray arrayWithCapacity:self.count];
+    
+    [self enumerateObjectsUsingBlock:^(id obj, NSUInteger idx, BOOL *stop) {
+        id value = block(obj);
+        if (!value)
+            value = [NSNull null];
+        
+        [result addObject:value];
+    }];
+    
+    return result;
 }
 
 - (id)reduce:(id)initial withBlock:(BKAccumulationBlock)block {

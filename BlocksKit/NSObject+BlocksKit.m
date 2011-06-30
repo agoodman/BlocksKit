@@ -9,8 +9,10 @@
 #import "NSObject+BlocksKit.h"
 #import <dispatch/dispatch.h>
 
+typedef void(^BKInternalWrappingBlock)(BOOL cancel);
+
 static inline dispatch_time_t dTimeDelay(NSTimeInterval time) {
-    int64_t delta = (int64_t)(NSEC_PER_SEC * time);
+    int64_t delta = (NSEC_PER_SEC * time);
     return dispatch_time(DISPATCH_TIME_NOW, delta);
 }
 
@@ -21,39 +23,17 @@ static inline dispatch_time_t dTimeDelay(NSTimeInterval time) {
     
     __block BOOL cancelled = NO;
     
-    void (^wrappingBlock)(BOOL, id) = ^(BOOL cancel, id obj) {
+    BKInternalWrappingBlock wrapper = ^(BOOL cancel) {
         if (cancel) {
             cancelled = YES;
             return;
         }
-        if (!cancelled) block(obj);
+        if (!cancelled) block(self);
     };
     
-    wrappingBlock = [wrappingBlock copy];
+	dispatch_after(dTimeDelay(delay), dispatch_get_main_queue(), ^{  wrapper(NO); });
     
-	dispatch_after(dTimeDelay(delay), dispatch_get_main_queue(), ^{  wrappingBlock(NO, self); });
-    
-    return [wrappingBlock autorelease];
-}
-
-- (id)performBlock:(BKWithObjectBlock)block withObject:(id)anObject afterDelay:(NSTimeInterval)delay {
-    if (!block) return nil;
-    
-    __block BOOL cancelled = NO;
-    
-    void (^wrappingBlock)(BOOL, id, id) = ^(BOOL cancel, id obj, id arg) {
-        if (cancel) {
-            cancelled = YES;
-            return;
-        }
-        if (!cancelled) block(obj, arg);
-    };
-    
-    wrappingBlock = [wrappingBlock copy];
-    
-	dispatch_after(dTimeDelay(delay), dispatch_get_main_queue(), ^{ wrappingBlock(NO, self, anObject); });
-    
-    return [wrappingBlock autorelease];
+    return wrapper;
 }
 
 + (id)performBlock:(BKBlock)block afterDelay:(NSTimeInterval)delay {
@@ -61,45 +41,23 @@ static inline dispatch_time_t dTimeDelay(NSTimeInterval time) {
     
     __block BOOL cancelled = NO;
     
-    void (^wrappingBlock)(BOOL) = ^(BOOL cancel) {
+    BKInternalWrappingBlock wrapper = ^(BOOL cancel) {
         if (cancel) {
             cancelled = YES;
             return;
         }
-        if (!cancelled)block();
+        if (!cancelled) block();
     };
     
-    wrappingBlock = [wrappingBlock copy];
+	dispatch_after(dTimeDelay(delay), dispatch_get_main_queue(), ^{ wrapper(NO); });
     
-	dispatch_after(dTimeDelay(delay), dispatch_get_main_queue(), ^{ wrappingBlock(NO); });
-    
-    return [wrappingBlock autorelease];
-}
-
-+ (id)performBlock:(BKSenderBlock)block withObject:(id)anObject afterDelay:(NSTimeInterval)delay {
-    if (!block) return nil;
-    
-    __block BOOL cancelled = NO;
-    
-    void (^wrappingBlock)(BOOL, id) = ^(BOOL cancel, id arg) {
-        if (cancel) {
-            cancelled = YES;
-            return;
-        }
-        if (!cancelled) block(arg);
-    };
-    
-    wrappingBlock = [wrappingBlock copy];
-    
-	dispatch_after(dTimeDelay(delay), dispatch_get_main_queue(), ^{  wrappingBlock(NO, anObject); });
-    
-    return [wrappingBlock autorelease];    
+    return wrapper;
 }
 
 + (void)cancelBlock:(id)block {
     if (!block) return;
-    void (^aWrappingBlock)(BOOL) = (void(^)(BOOL))block;
-    aWrappingBlock(YES);
+    BKInternalWrappingBlock wrapper = block;
+    wrapper(YES);
 }
 
 @end

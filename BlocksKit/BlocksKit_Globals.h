@@ -26,21 +26,42 @@
 
 
 typedef void(^BKBlock)(void); // compatible with dispatch_block_t
-
 typedef void(^BKSenderBlock)(id sender);
-typedef id(^BKTransformBlock)(id obj);
-typedef BOOL(^BKValidationBlock)(id obj);
-
 typedef void(^BKIndexBlock)(NSUInteger index);
-typedef BOOL(^BKIndexValidationBlock)(NSUInteger index);
-
-typedef BOOL(^BKWebViewStartBlock)(NSURLRequest *request, UIWebViewNavigationType navigationType);
 typedef void(^BKErrorBlock)(NSError *error);
+typedef void(^BKTimerBlock)(NSTimeInterval time);
+
+#if BK_HAS_UIKIT
+typedef void(^BKViewBlock)(UIView *view);
+typedef void(^BKGestureRecognizerBlock)(UIGestureRecognizer *sender, UIGestureRecognizerState state, CGPoint location);
+#endif
 
 typedef void(^BKWithObjectBlock)(id obj, id arg);
 typedef void(^BKObservationBlock)(id obj, NSDictionary *change);
 typedef void(^BKKeyValueBlock)(id key, id obj);
+
+typedef void(^BKTouchBlock)(NSSet* set, UIEvent* event);
+
+typedef BOOL(^BKValidationBlock)(id obj);
+typedef BOOL(^BKIndexValidationBlock)(NSUInteger index);
+typedef BOOL(^BKWebViewStartBlock)(NSURLRequest *request, UIWebViewNavigationType navigationType);
+
+typedef id(^BKTransformBlock)(id obj);
 typedef id(^BKKeyValueTransformBlock)(id key, id obj);
 typedef id(^BKAccumulationBlock)(id sum, id obj);
 
-typedef void(^BKTouchBlock)(NSSet* set, UIEvent* event);
+#if __has_feature(objc_arc)
+#define BK_AUTORELEASE(o) o
+#define BK_RETAIN(o) o
+#define BK_SHOULD_DEALLOC 0
+#else
+#define BK_AUTORELEASE(o) [o autorelease]
+#define BK_RETAIN(o) [o retain]
+#define BK_SHOULD_DEALLOC 1
+#endif
+
+#if !__has_feature(objc_arc) || __has_feature(objc_arc_weak)
+#define __bk_weak __weak
+#else
+#define __bk_weak
+#endif

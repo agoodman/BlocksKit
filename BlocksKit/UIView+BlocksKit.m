@@ -20,7 +20,7 @@ static char *kViewTouchUpBlockKey = "UIViewTouchDownBlock";
 - (void)whenTouches:(NSUInteger)numberOfTouches tapped:(NSUInteger)numberOfTaps handler:(BKBlock)block {
     self.userInteractionEnabled = YES;
     
-    UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc] initWithHandler:^(id recognizer) {
+    UITapGestureRecognizer *gesture = [UITapGestureRecognizer recognizerWithHandler:^(UIGestureRecognizer *sender, UIGestureRecognizerState state, CGPoint location) {
         block();
     }];
     
@@ -34,12 +34,11 @@ static char *kViewTouchUpBlockKey = "UIViewTouchDownBlock";
     }] each:^(id obj) {
         [gesture requireGestureRecognizerToFail:(UITapGestureRecognizer *)obj];
     }];
-    
+
     [gesture setNumberOfTouchesRequired:numberOfTouches];
     [gesture setNumberOfTapsRequired:numberOfTaps];
     
     [self addGestureRecognizer:gesture];
-    [gesture release];    
 }
 
 - (void)whenTapped:(BKBlock)block {
@@ -81,6 +80,10 @@ static char *kViewTouchUpBlockKey = "UIViewTouchDownBlock";
     [super touchesEnded:touches withEvent:event];
     BKTouchBlock block = [self associatedValueForKey:kViewTouchUpBlockKey];
     if (block) dispatch_async(dispatch_get_main_queue(), ^{ block(touches, event); });
+}
+
+- (void)eachSubview:(BKViewBlock)block {
+    [self.subviews each:(BKSenderBlock)block];
 }
 
 @end

@@ -8,7 +8,7 @@
 
 @interface AMObserverTrampoline : NSObject {
 @private
-    __weak id observee;
+    __bk_weak id observee;
     NSString *keyPath;
     BKObservationBlock task;
     NSOperationQueue *queue;
@@ -20,7 +20,7 @@
 
 @end
 
-static NSString *AMObserverTrampolineContext = @"AMObserverTrampolineContext";
+static char *AMObserverTrampolineContext = "AMObserverTrampolineContext";
 
 @implementation AMObserverTrampoline
 
@@ -28,7 +28,7 @@ static NSString *AMObserverTrampolineContext = @"AMObserverTrampolineContext";
     if (!(self = [super init])) return nil;
     task = [newTask copy];
     keyPath = [newKeyPath copy];
-    queue = [newQueue retain];
+    queue = BK_RETAIN(newQueue);
     observee = obj;
     cancellationPredicate = 0;
     [(NSObject*)obj addObserver:self forKeyPath:keyPath options:0 context:AMObserverTrampolineContext];
@@ -36,11 +36,12 @@ static NSString *AMObserverTrampolineContext = @"AMObserverTrampolineContext";
 }
 
 - (void)observeValueForKeyPath:(NSString *)aKeyPath ofObject:(id)object change:(NSDictionary *)change context:(void *)context {
+    BKObservationBlock block = task;
     if (context == AMObserverTrampolineContext) {
         if (queue)
-            [queue addOperationWithBlock:^{ task(object, change); }];
+            [queue addOperationWithBlock:^{ block(object, change); }];
         else
-            task(object, change);
+            block(object, change);
     }
 }
 
@@ -53,15 +54,17 @@ static NSString *AMObserverTrampolineContext = @"AMObserverTrampolineContext";
 
 - (void)dealloc {
     [self cancelObservation];
+#if BK_SHOULD_DEALLOC
     [task release];
     [keyPath release];
     [queue release];
     [super dealloc];
+#endif
 }
 
 @end
 
-static NSString *AMObserverMapKey = @"org.andymatuschak.observerMap";
+static char *AMObserverMapKey = "org.andymatuschak.observerMap";
 static dispatch_queue_t AMObserverMutationQueue = NULL;
 
 static dispatch_queue_t AMObserverMutationQueueCreateIfNecessary() {
@@ -84,13 +87,12 @@ static dispatch_queue_t AMObserverMutationQueueCreateIfNecessary() {
     dispatch_sync(AMObserverMutationQueueCreateIfNecessary(), ^{
         NSMutableDictionary *dict = [self associatedValueForKey:AMObserverMapKey];
         if (!dict) {
-            dict = [[NSMutableDictionary alloc] init];
+            dict = [NSMutableDictionary dictionary];
             [self associateValue:dict withKey:AMObserverMapKey];
-            [dict release];
         }
-        AMObserverTrampoline *trampoline = [[AMObserverTrampoline alloc] initWithObservingObject:self keyPath:keyPath onQueue:queue task:task];
+        
+        AMObserverTrampoline *trampoline = BK_AUTORELEASE([[AMObserverTrampoline alloc] initWithObservingObject:self keyPath:keyPath onQueue:queue task:task]);
         [dict setObject:trampoline forKey:token];
-        [trampoline release];
     });
     return token;
 }
