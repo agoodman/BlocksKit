@@ -11,7 +11,7 @@ static char *kControlBlockArrayKey = "UIControlBlockHandlerArray";
 
 @interface BKControlWrapper : NSObject
 
-+ (id)wrapperWithHandler:(BKSenderBlock)aHandler forControlEvents:(UIControlEvents)someControlEvents;
+- (id)initWithHandler:(BKSenderBlock)aHandler forControlEvents:(UIControlEvents)someControlEvents;
 
 @property (copy) BKSenderBlock handler;
 @property (assign) UIControlEvents controlEvents;
@@ -24,11 +24,12 @@ static char *kControlBlockArrayKey = "UIControlBlockHandlerArray";
 
 @synthesize handler, controlEvents;
 
-+ (id)wrapperWithHandler:(BKSenderBlock)aHandler forControlEvents:(UIControlEvents)someControlEvents {
-    BKControlWrapper *instance = [BKControlWrapper new];
-    instance.handler = aHandler;
-    instance.controlEvents = someControlEvents;
-    return BK_AUTORELEASE(instance);
+- (id)initWithHandler:(BKSenderBlock)aHandler forControlEvents:(UIControlEvents)someControlEvents {
+    if ((self = [super init])) {
+        self.handler = aHandler;
+        self.controlEvents = someControlEvents;
+    }
+    return self;
 }
 
 #if BK_SHOULD_DEALLOC
@@ -51,12 +52,15 @@ static char *kControlBlockArrayKey = "UIControlBlockHandlerArray";
 - (void)addEventHandler:(BKSenderBlock)handler forControlEvents:(UIControlEvents)controlEvents {
     NSMutableArray *actions = [self associatedValueForKey:&kControlBlockArrayKey];
     
-    if (!actions)
-        [self associateValue:[NSMutableArray array] withKey:&kControlBlockArrayKey];
+    if (!actions) {
+        actions = [NSMutableArray array];
+        [self associateValue:actions withKey:&kControlBlockArrayKey];
+    }
     
-    BKControlWrapper *target = [BKControlWrapper wrapperWithHandler:handler forControlEvents:controlEvents];
+    BKControlWrapper *target = [[BKControlWrapper alloc] initWithHandler:handler forControlEvents:controlEvents];
     [actions addObject:target];
-    [self addTarget:target action:@selector(invoke:) forControlEvents:controlEvents];
+    [self addTarget:[actions lastObject] action:@selector(invoke:) forControlEvents:controlEvents];
+    BK_RELEASE(target);
 }
 
 - (void)removeEventHandlersForControlEvents:(UIControlEvents)controlEvents {

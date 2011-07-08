@@ -43,6 +43,7 @@ typedef void(^BKKeyValueBlock)(id key, id obj);
 typedef void(^BKTouchBlock)(NSSet* set, UIEvent* event);
 
 typedef BOOL(^BKValidationBlock)(id obj);
+typedef BOOL(^BKKeyValueValidationBlock)(id key, id obj);
 typedef BOOL(^BKIndexValidationBlock)(NSUInteger index);
 typedef BOOL(^BKWebViewStartBlock)(NSURLRequest *request, UIWebViewNavigationType navigationType);
 
@@ -54,10 +55,18 @@ typedef id(^BKAccumulationBlock)(id sum, id obj);
 #define BK_AUTORELEASE(o) o
 #define BK_RETAIN(o) o
 #define BK_SHOULD_DEALLOC 0
+#define BK_RELEASE(o)
+#define BK_SET_RETAINED(var, val) var = val
 #else
 #define BK_AUTORELEASE(o) [o autorelease]
 #define BK_RETAIN(o) [o retain]
 #define BK_SHOULD_DEALLOC 1
+#define BK_RELEASE(o) [o release]
+#define BK_SET_RETAINED(var, val) { \
+if (var) \
+[var release]; \
+var = [val retain]; \
+}
 #endif
 
 #if !__has_feature(objc_arc) || __has_feature(objc_arc_weak)
